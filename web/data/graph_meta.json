@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "generado": "2026-08-12T11:50:13",
+  "grafo": {
+    "archivo": "graph.bin",
+    "nodos": 89785,
+    "aristas": 204403,
+    "bbox": {
+      "lat_min": -33.52,
+      "lat_max": -33.15,
+      "lon_min": -70.82,
+      "lon_max": -70.44
+    },
+    "secciones": {
+      "lat": {
+        "offset": 0,
+        "bytes": 359140,
+        "dtype": "int32"
+      },
+      "lon": {
+        "offset": 359140,
+        "bytes": 359140,
+        "dtype": "int32"
+      },
+      "offsets": {
+        "offset": 718280,
+        "bytes": 359144,
+        "dtype": "int32"
+      },
+      "targets": {
+        "offset": 1077424,
+        "bytes": 817612,
+        "dtype": "int32"
+      },
+      "base_ds": {
+        "offset": 1895036,
+        "bytes": 408806,
+        "dtype": "uint16"
+      },
+      "largo_m": {
+        "offset": 2303844,
+        "bytes": 408806,
+        "dtype": "uint16"
+      },
+      "grupos": {
+        "offset": 2712652,
+        "bytes": 204403,
+        "dtype": "uint8"
+      }
+    }
+  },
+  "grilla": {
+    "archivo": "grid.bin",
+    "celdas": 9566,
+    "espaciado_m": 150,
+    "bbox": {
+      "lat_min": -33.4913875,
+      "lat_max": -33.15,
+      "lon_min": -70.71,
+      "lon_max": -70.44
+    },
+    "nx": 168,
+    "ny": 254,
+    "paso_lat": 0.001348982408878096,
+    "paso_lon": 0.00161437034090543,
+    "comunas": [
+      "(fuera)",
+      "Providencia",
+      "Vitacura",
+      "Las Condes",
+      "La Reina",
+      "Ñuñoa",
+      "Lo Barnechea",
+      "Chicureo - Chamisero"
+    ],
+    "secciones": {
+      "lat": {
+        "offset": 0,
+        "bytes": 38264,
+        "dtype": "int32"
+      },
+      "lon": {
+        "offset": 38264,
+        "bytes": 38264,
+        "dtype": "int32"
+      },
+      "nodo": {
+        "offset": 76528,
+        "bytes": 38264,
+        "dtype": "int32"
+      },
+      "comuna": {
+        "offset": 114792,
+        "bytes": 9566,
+        "dtype": "uint8"
+      },
+      "ix": {
+        "offset": 124360,
+        "bytes": 19132,
+        "dtype": "uint16"
+      },
+      "iy": {
+        "offset": 143492,
+        "bytes": 19132,
+        "dtype": "uint16"
+      }
+    }
+  },
+  "grupos_via": [
+    "autopista",
+    "arterial",
+    "local"
+  ]
+}

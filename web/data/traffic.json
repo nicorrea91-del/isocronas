@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "generado": "2026-08-12T11:55:54",
+  "fuente": "valores a priori estimados, sin mediciones (el modelo es optimista en las puntas)",
+  "grupos": [
+    "autopista",
+    "arterial",
+    "local"
+  ],
+  "g_minimo": 0.4,
+  "franjas": [
+    {
+      "id": "madrugada",
+      "label": "Madrugada (referencia sin tráfico)",
+      "hora_referencia": "martes 03:00",
+      "t0_s": 60.0,
+      "g": [
+        0.95,
+        0.95,
+        1.0
+      ]
+    },
+    {
+      "id": "punta_am",
+      "label": "Punta mañana",
+      "hora_referencia": "martes 08:00",
+      "t0_s": 180.0,
+      "g": [
+        1.55,
+        1.45,
+        1.2
+      ]
+    },
+    {
+      "id": "valle",
+      "label": "Valle / horario normal",
+      "hora_referencia": "martes 13:00",
+      "t0_s": 120.0,
+      "g": [
+        1.15,
+        1.25,
+        1.1
+      ]
+    },
+    {
+      "id": "punta_pm",
+      "label": "Punta tarde",
+      "hora_referencia": "martes 18:30",
+      "t0_s": 200.0,
+      "g": [
+        1.7,
+        1.55,
+        1.25
+      ]
+    },
+    {
+      "id": "noche",
+      "label": "Noche",
+      "hora_referencia": "martes 21:30",
+      "t0_s": 90.0,
+      "g": [
+        1.0,
+        1.1,
+        1.05
+      ]
+    }
+  ],
+  "diagnostico": {
+    "nota": "Sin mediciones cargadas. Llena data/mediciones.csv y vuelve a correr."
+  }
+}

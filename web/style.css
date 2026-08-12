@@ -1,0 +1,673 @@
+/* ------------------------------------------------------------------------- */
+/* Tokens                                                                     */
+/* ------------------------------------------------------------------------- */
+
+:root {
+  --fondo: #f6f7f9;
+  --superficie: #ffffff;
+  --superficie-2: #f0f2f5;
+  --borde: #dfe3e8;
+  --texto: #1c2430;
+  --texto-suave: #5d6b7a;
+  --acento: #6d3ff2;
+  --acento-suave: #efe9ff;
+  --bueno: #1a9850;
+  --malo: #d73027;
+  --sombra: 0 1px 2px rgba(20, 28, 38, 0.06), 0 4px 16px rgba(20, 28, 38, 0.06);
+  --radio: 10px;
+  --panel-ancho: 400px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #12161c;
+    --superficie: #1a2027;
+    --superficie-2: #222a33;
+    --borde: #2f3945;
+    --texto: #e6ebf1;
+    --texto-suave: #9aa8b8;
+    --acento: #9b7bff;
+    --acento-suave: #2a2145;
+    --sombra: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--texto);
+  background: var(--fondo);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Layout                                                                     */
+/* ------------------------------------------------------------------------- */
+
+#app {
+  display: grid;
+  grid-template-columns: 1fr var(--panel-ancho);
+  height: 100%;
+}
+
+#mapa {
+  height: 100%;
+  min-width: 0;
+}
+
+#panel {
+  height: 100%;
+  overflow-y: auto;
+  background: var(--superficie);
+  border-left: 1px solid var(--borde);
+  padding: 18px 18px 28px;
+}
+
+@media (max-width: 900px) {
+  #app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 55vh 45vh;
+  }
+  #panel {
+    border-left: none;
+    border-top: 1px solid var(--borde);
+  }
+}
+
+/* ------------------------------------------------------------------------- */
+/* Encabezados y bloques                                                      */
+/* ------------------------------------------------------------------------- */
+
+.panel-header h1 {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+}
+
+.panel-header .sub {
+  margin: 4px 0 0;
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.bloque {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--borde);
+}
+
+.bloque > h2 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--texto-suave);
+}
+
+.bloque.destacado {
+  background: var(--acento-suave);
+  border: 1px solid color-mix(in srgb, var(--acento) 25%, transparent);
+  border-radius: var(--radio);
+  padding: 14px;
+  margin-top: 18px;
+}
+
+.ayuda {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--texto-suave);
+}
+
+.vacio {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 13px;
+  font-style: italic;
+}
+
+kbd {
+  font: inherit;
+  font-size: 11.5px;
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Controles                                                                  */
+/* ------------------------------------------------------------------------- */
+
+.btn {
+  font: inherit;
+  font-weight: 550;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn-ancho {
+  width: 100%;
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #fff;
+}
+
+.btn-ancho:hover {
+  filter: brightness(1.08);
+  color: #fff;
+}
+
+.btn-icono {
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--texto-suave);
+  cursor: pointer;
+}
+
+.btn-icono:hover {
+  background: var(--superficie-2);
+  color: var(--malo);
+}
+
+.campo {
+  display: block;
+  margin-top: 10px;
+}
+
+.campo > span {
+  display: block;
+  font-size: 12px;
+  color: var(--texto-suave);
+  margin-bottom: 3px;
+}
+
+.campo.compacto > span {
+  font-size: 11px;
+}
+
+select,
+input[type='text'],
+input[type='search'] {
+  font: inherit;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--borde);
+  border-radius: 7px;
+  background: var(--superficie);
+  color: var(--texto);
+}
+
+select:focus-visible,
+input:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 1px;
+}
+
+.slider {
+  width: 100%;
+  margin: 2px 0 0;
+  accent-color: var(--acento);
+}
+
+.escala {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--texto-suave);
+}
+
+.segmentado {
+  display: flex;
+  gap: 4px;
+  background: var(--superficie-2);
+  padding: 3px;
+  border-radius: 9px;
+}
+
+.segmentado button {
+  flex: 1;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  padding: 6px 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--texto-suave);
+  cursor: pointer;
+}
+
+.segmentado button[aria-checked='true'] {
+  background: var(--acento);
+  color: #fff;
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.switch input {
+  accent-color: var(--acento);
+}
+
+/* ------------------------------------------------------------------------- */
+/* Puntos                                                                     */
+/* ------------------------------------------------------------------------- */
+
+.lista-puntos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.punto {
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 10px;
+}
+
+.punto.inactivo {
+  opacity: 0.55;
+}
+
+.punto-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.punto-color {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--superficie);
+}
+
+.punto-nombre {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  border-color: transparent;
+  background: transparent;
+  padding: 3px 4px;
+}
+
+.punto-nombre:hover,
+.punto-nombre:focus {
+  border-color: var(--borde);
+  background: var(--superficie);
+}
+
+.punto-viajes {
+  margin-top: 8px;
+}
+
+.punto-viajes label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.punto-viajes output {
+  font-weight: 650;
+  font-size: 13px;
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.punto-franjas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.punto-detalle {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Búsqueda                                                                   */
+/* ------------------------------------------------------------------------- */
+
+.agregar {
+  margin-top: 12px;
+}
+
+.fila-buscar {
+  display: flex;
+  gap: 6px;
+}
+
+.fila-buscar input {
+  flex: 1;
+  min-width: 0;
+}
+
+.resultados {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.resultados li button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 12.5px;
+  padding: 7px 9px;
+  border: none;
+  border-bottom: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.resultados li:last-child button {
+  border-bottom: none;
+}
+
+.resultados li button:hover {
+  background: var(--acento-suave);
+}
+
+/* ------------------------------------------------------------------------- */
+/* Resultado                                                                  */
+/* ------------------------------------------------------------------------- */
+
+.resultado .titular {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.resultado .titular small {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texto-suave);
+}
+
+.resultado .lugar {
+  margin: 2px 0 0;
+  font-size: 13px;
+}
+
+.resultado .coords {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.acciones {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.leyenda {
+  margin-top: 12px;
+}
+
+.barra-leyenda {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    rgb(0, 104, 55),
+    rgb(49, 163, 84),
+    rgb(166, 217, 106),
+    rgb(255, 255, 191),
+    rgb(253, 174, 97),
+    rgb(244, 109, 67),
+    rgb(165, 0, 38)
+  );
+}
+
+.leyenda-etiquetas {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--texto-suave);
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Isócronas                                                                  */
+/* ------------------------------------------------------------------------- */
+
+.iso-sliders {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.iso-slider label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.iso-slider .punto-color {
+  display: inline-block;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.iso-slider output {
+  font-weight: 650;
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Tabla del candidato                                                        */
+/* ------------------------------------------------------------------------- */
+
+.candidato table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.candidato th,
+.candidato td {
+  padding: 4px 3px;
+  text-align: right;
+  border-bottom: 1px solid var(--borde);
+}
+
+.candidato th:first-child,
+.candidato td:first-child {
+  text-align: left;
+}
+
+.candidato thead th {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-suave);
+  font-weight: 600;
+}
+
+.candidato tfoot td {
+  font-weight: 700;
+  border-bottom: none;
+}
+
+.delta-bueno {
+  color: var(--bueno);
+  font-weight: 600;
+}
+
+.delta-malo {
+  color: var(--malo);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Pie                                                                        */
+/* ------------------------------------------------------------------------- */
+
+.panel-footer {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borde);
+}
+
+.pie {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+
+.pie a {
+  color: inherit;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Carga                                                                      */
+/* ------------------------------------------------------------------------- */
+
+.cargando {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: var(--fondo);
+}
+
+.cargando[hidden] {
+  display: none;
+}
+
+.cargando-caja {
+  text-align: center;
+  max-width: 460px;
+  padding: 24px;
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  margin: 0 auto 14px;
+  border: 3px solid var(--borde);
+  border-top-color: var(--acento);
+  border-radius: 50%;
+  animation: girar 0.9s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 3s;
+  }
+}
+
+.error {
+  color: var(--malo);
+  font-size: 13px;
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Marcadores                                                                 */
+/* ------------------------------------------------------------------------- */
+
+.marcador {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2.5px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+}
+
+.marcador-optimo {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: var(--acento);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--acento) 35%, transparent),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.marcador-candidato {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 2.5px solid #fff;
+  background: #111;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
+.maplibregl-popup-content {
+  font: inherit;
+  font-size: 12.5px;
+  border-radius: 8px;
+  padding: 8px 10px;
+}

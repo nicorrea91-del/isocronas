@@ -1,0 +1,17 @@
+# Cache de descargas de OpenStreetMap (se regenera con el pipeline)
+cache/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Datos generados por el pipeline (se regeneran; descomenta si prefieres versionarlos)
+# web/data/graph.bin
+# web/data/graph_meta.json
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store

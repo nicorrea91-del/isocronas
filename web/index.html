@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Isócronas y centro de gravedad — Santiago</title>
+    <meta
+      name="description"
+      content="Dónde conviene vivir según el tiempo de viaje semanal a los lugares que importan."
+    />
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="cargando" class="cargando">
+      <div class="cargando-caja">
+        <div class="spinner" aria-hidden="true"></div>
+        <p id="cargando-texto">Cargando la red de calles…</p>
+        <p id="cargando-error" class="error" hidden></p>
+      </div>
+    </div>
+
+    <main id="app">
+      <div id="mapa" role="application" aria-label="Mapa"></div>
+
+      <aside id="panel">
+        <header class="panel-header">
+          <h1>Centro de gravedad</h1>
+          <p class="sub">
+            Dónde conviene vivir según los minutos de auto que gastas cada semana.
+          </p>
+        </header>
+
+        <!-- ------------------------------------------------------------- -->
+        <section class="bloque">
+          <h2>Puntos de interés</h2>
+          <div id="lista-puntos" class="lista-puntos"></div>
+
+          <div class="agregar">
+            <div class="fila-buscar">
+              <input
+                id="buscar-direccion"
+                type="search"
+                placeholder="Buscar una dirección…"
+                autocomplete="off"
+                aria-label="Buscar una dirección"
+              />
+              <button id="btn-buscar" class="btn" type="button">Buscar</button>
+            </div>
+            <ul id="resultados-busqueda" class="resultados" hidden></ul>
+            <p class="ayuda">
+              O haz <strong>clic en el mapa</strong> para agregar un punto ahí.
+            </p>
+          </div>
+        </section>
+
+        <!-- ------------------------------------------------------------- -->
+        <section class="bloque">
+          <h2>Qué minimizar</h2>
+          <div id="selector-metrica" class="segmentado" role="radiogroup" aria-label="Métrica"></div>
+          <p class="ayuda" id="ayuda-metrica"></p>
+        </section>
+
+        <!-- ------------------------------------------------------------- -->
+        <section class="bloque destacado">
+          <h2>Resultado</h2>
+          <div id="resultado" class="resultado">
+            <p class="vacio">Agrega al menos un punto con viajes &gt; 0.</p>
+          </div>
+          <div class="acciones">
+            <button id="btn-centrar" class="btn" type="button" disabled>
+              Ir al óptimo
+            </button>
+            <label class="switch">
+              <input id="toggle-heatmap" type="checkbox" checked />
+              <span>Mapa de calor</span>
+            </label>
+          </div>
+          <div id="leyenda-costo" class="leyenda" hidden>
+            <div class="barra-leyenda"></div>
+            <div class="leyenda-etiquetas">
+              <span id="leyenda-min"></span>
+              <span id="leyenda-max"></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ------------------------------------------------------------- -->
+        <section class="bloque">
+          <h2>Isócronas</h2>
+          <p class="ayuda">Hasta dónde llegas desde un punto en X minutos.</p>
+
+          <label class="campo">
+            <span>Desde</span>
+            <select id="iso-origen"></select>
+          </label>
+
+          <label class="campo">
+            <span>Horario</span>
+            <select id="iso-franja"></select>
+          </label>
+
+          <div id="iso-sliders" class="iso-sliders"></div>
+          <p class="ayuda" id="iso-estado"></p>
+        </section>
+
+        <!-- ------------------------------------------------------------- -->
+        <section class="bloque">
+          <h2>Comparar un lugar</h2>
+          <p class="ayuda">
+            <kbd>Shift</kbd> + clic en el mapa para evaluar una dirección concreta.
+          </p>
+          <div id="candidato" class="candidato">
+            <p class="vacio">Sin lugar seleccionado.</p>
+          </div>
+        </section>
+
+        <!-- ------------------------------------------------------------- -->
+        <footer class="panel-footer">
+          <button id="btn-compartir" class="btn btn-ancho" type="button">
+            Copiar enlace para compartir
+          </button>
+          <p id="pie-datos" class="pie"></p>
+          <p class="pie">
+            Calles y límites de
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener"
+              >OpenStreetMap</a
+            >. Mapa base de
+            <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>.
+            Búsqueda con
+            <a href="https://nominatim.org/" target="_blank" rel="noopener">Nominatim</a>.
+          </p>
+        </footer>
+      </aside>
+    </main>
+
+    <template id="tpl-punto">
+      <article class="punto">
+        <div class="punto-cabecera">
+          <span class="punto-color" data-rol="color"></span>
+          <input class="punto-nombre" data-rol="nombre" type="text" aria-label="Nombre del punto" />
+          <button class="btn-icono" data-rol="borrar" type="button" title="Quitar punto">
+            &times;
+          </button>
+        </div>
+        <div class="punto-viajes">
+          <label>
+            <span>Viajes por semana</span>
+            <output data-rol="viajes-valor"></output>
+          </label>
+          <input
+            class="slider"
+            data-rol="viajes"
+            type="range"
+            min="0"
+            max="14"
+            step="1"
+            aria-label="Viajes por semana"
+          />
+          <div class="escala"><span>0</span><span>7</span><span>14</span></div>
+        </div>
+        <div class="punto-franjas">
+          <label class="campo compacto">
+            <span>Ida</span>
+            <select data-rol="franja-ida"></select>
+          </label>
+          <label class="campo compacto">
+            <span>Vuelta</span>
+            <select data-rol="franja-vuelta"></select>
+          </label>
+        </div>
+        <p class="punto-detalle" data-rol="detalle"></p>
+      </article>
+    </template>
+
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
