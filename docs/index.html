@@ -33,7 +33,19 @@
 
         <!-- ------------------------------------------------------------- -->
         <section class="bloque">
-          <h2>Puntos de interés</h2>
+          <h2>Tus lugares</h2>
+
+          <div id="vacio-puntos" class="estado-vacio">
+            <p>
+              Agrega los lugares a los que viajas: el trabajo, el colegio, los
+              suegros. O los clientes que visitas, o las sucursales — sirve para
+              cualquier conjunto de destinos.
+            </p>
+            <button id="btn-ejemplo" class="btn" type="button">
+              Cargar un ejemplo para probar
+            </button>
+          </div>
+
           <div id="lista-puntos" class="lista-puntos"></div>
 
           <div class="agregar">
@@ -51,6 +63,29 @@
             <p class="ayuda">
               O haz <strong>clic en el mapa</strong> para agregar un punto ahí.
             </p>
+
+            <details class="lote">
+              <summary>Agregar varios de una vez</summary>
+              <p class="ayuda">
+                Una dirección por línea. Opcionalmente
+                <code>Nombre; dirección; viajes</code>:
+              </p>
+              <textarea
+                id="lote-texto"
+                rows="5"
+                spellcheck="false"
+                placeholder="Cliente A; Apoquindo 3000, Las Condes; 2&#10;Cliente B; Av. Vitacura 2900, Vitacura; 1&#10;Isidora Goyenechea 3000, Las Condes"
+                aria-label="Lista de direcciones"
+              ></textarea>
+              <button id="btn-lote" class="btn btn-ancho" type="button">
+                Buscar y agregar todas
+              </button>
+              <p class="ayuda" id="lote-estado"></p>
+            </details>
+
+            <button id="btn-vaciar" class="btn btn-tenue" type="button" hidden>
+              Quitar todos los lugares
+            </button>
           </div>
         </section>
 

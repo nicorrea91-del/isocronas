@@ -7,9 +7,8 @@ __pycache__/
 .venv/
 venv/
 
-# Datos generados por el pipeline (se regeneran; descomenta si prefieres versionarlos)
-# web/data/graph.bin
-# web/data/graph_meta.json
+# Los datos generados en docs/data/ SÍ se versionan a propósito: son unos pocos
+# MB y son lo que hace que el sitio publicado funcione sin correr el pipeline.
 
 # Sistema
 Thumbs.db

@@ -82,9 +82,11 @@ async function iniciar() {
     construirMapa();
     construirControles();
 
-    if (!cargarDesdeUrl()) {
-      for (const ejemplo of PUNTOS_EJEMPLO) agregarPunto(ejemplo, { silencioso: true });
-    }
+    // Se arranca vacío a propósito: la app es para los lugares de quien la usa,
+    // que pueden ser la casa de los suegros o seis clientes que visitar. El
+    // ejemplo está a un botón de distancia para quien quiera ver cómo funciona.
+    cargarDesdeUrl();
+    renderizarListaPuntos();
 
     mostrarPie();
     el('cargando').hidden = true;
@@ -289,6 +291,9 @@ function construirControles() {
       buscarDireccion();
     }
   });
+  el('btn-lote').addEventListener('click', agregarLote);
+  el('btn-ejemplo').addEventListener('click', cargarEjemplo);
+  el('btn-vaciar').addEventListener('click', vaciarPuntos);
 
   el('btn-compartir').addEventListener('click', compartir);
 }
@@ -441,7 +446,17 @@ function renderizarListaPuntos() {
     lista.appendChild(nodo);
   }
 
+  el('vacio-puntos').hidden = estado.puntos.length > 0;
+  el('btn-vaciar').hidden = estado.puntos.length === 0;
   actualizarSelectorOrigen();
+}
+
+function vaciarPuntos() {
+  for (const punto of estado.puntos) punto.marcador?.remove();
+  estado.puntos.length = 0;
+  renderizarListaPuntos();
+  cacheRaster.clave = null;
+  recalcular();
 }
 
 function actualizarSelectorOrigen() {
@@ -744,6 +759,119 @@ function pintar() {
 // Búsqueda de direcciones (Nominatim)
 // ---------------------------------------------------------------------------
 
+/**
+ * Geocodifica con Nominatim, acotado al rectángulo con datos de calles: así una
+ * búsqueda de "Apoquindo 3000" no se va a otra región del país.
+ */
+async function geocodificar(consulta, limite = 6) {
+  const bbox = datos.grafo.bbox;
+  const url =
+    'https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=cl' +
+    `&limit=${limite}&q=${encodeURIComponent(consulta)}` +
+    `&viewbox=${bbox.lon_min},${bbox.lat_max},${bbox.lon_max},${bbox.lat_min}&bounded=1`;
+  const respuesta = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!respuesta.ok) throw new Error(`Nominatim respondió ${respuesta.status}`);
+  const encontrados = await respuesta.json();
+  return Array.isArray(encontrados) ? encontrados : [];
+}
+
+const esperar = (ms) => new Promise((listo) => setTimeout(listo, ms));
+
+/**
+ * Agrega muchos lugares de una lista pegada. Cada línea puede ser
+ * "Nombre; dirección; viajes", "Nombre; dirección" o solo la dirección.
+ *
+ * Nominatim es gratis y pide no más de una consulta por segundo, así que las
+ * líneas se procesan en serie con una pausa. Con seis clientes son siete
+ * segundos, que es un precio razonable por no depender de un servicio pagado.
+ */
+async function agregarLote() {
+  const textarea = el('lote-texto');
+  const estadoTexto = el('lote-estado');
+  const boton = el('btn-lote');
+
+  const lineas = textarea.value
+    .split('\n')
+    .map((linea) => linea.trim())
+    .filter(Boolean);
+
+  if (lineas.length === 0) {
+    estadoTexto.textContent = 'Pega al menos una dirección.';
+    return;
+  }
+
+  boton.disabled = true;
+  const fallidas = [];
+  let agregados = 0;
+
+  for (const [indice, linea] of lineas.entries()) {
+    estadoTexto.textContent = `Buscando ${indice + 1} de ${lineas.length}…`;
+
+    const campos = linea.split(';').map((campo) => campo.trim());
+    let nombre = null;
+    let direccion = campos[0];
+    let viajes = 4;
+
+    if (campos.length >= 2) {
+      nombre = campos[0];
+      direccion = campos[1];
+      const numero = Number(campos[2]);
+      if (Number.isFinite(numero)) viajes = Math.max(0, Math.min(14, Math.round(numero)));
+    }
+
+    try {
+      const encontrados = await geocodificar(direccion, 1);
+      if (encontrados.length === 0) {
+        fallidas.push(direccion);
+      } else {
+        const item = encontrados[0];
+        agregarPunto(
+          {
+            nombre: nombre || item.name || item.display_name.split(',')[0],
+            lat: Number(item.lat),
+            lon: Number(item.lon),
+            viajes,
+          },
+          { silencioso: true }
+        );
+        agregados++;
+      }
+    } catch (error) {
+      console.error(error);
+      fallidas.push(direccion);
+    }
+
+    if (indice < lineas.length - 1) await esperar(1100);
+  }
+
+  boton.disabled = false;
+  cacheRaster.clave = null;
+  recalcular();
+
+  estadoTexto.textContent =
+    `${agregados} de ${lineas.length} agregados.` +
+    (fallidas.length ? ` Sin resultado: ${fallidas.join(' · ')}` : '');
+  if (agregados > 0) {
+    textarea.value = fallidas.join('\n');
+    ajustarVistaAPuntos();
+  }
+}
+
+function ajustarVistaAPuntos() {
+  if (estado.puntos.length === 0) return;
+  const limites = new maplibregl.LngLatBounds();
+  for (const punto of estado.puntos) limites.extend([punto.lon, punto.lat]);
+  mapa.fitBounds(limites, { padding: 70, maxZoom: 14, duration: 700 });
+}
+
+function cargarEjemplo() {
+  vaciarPuntos();
+  for (const ejemplo of PUNTOS_EJEMPLO) agregarPunto(ejemplo, { silencioso: true });
+  cacheRaster.clave = null;
+  recalcular();
+  ajustarVistaAPuntos();
+}
+
 async function buscarDireccion() {
   const consulta = el('buscar-direccion').value.trim();
   const lista = el('resultados-busqueda');
@@ -752,19 +880,12 @@ async function buscarDireccion() {
     return;
   }
 
-  const bbox = datos.grafo.bbox;
-  const url =
-    'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=cl' +
-    `&q=${encodeURIComponent(consulta)}` +
-    `&viewbox=${bbox.lon_min},${bbox.lat_max},${bbox.lon_max},${bbox.lat_min}&bounded=1`;
-
   lista.hidden = false;
   lista.innerHTML = '<li><button type="button" disabled>Buscando…</button></li>';
 
   try {
-    const respuesta = await fetch(url, { headers: { Accept: 'application/json' } });
-    const encontrados = await respuesta.json();
-    if (!Array.isArray(encontrados) || encontrados.length === 0) {
+    const encontrados = await geocodificar(consulta, 6);
+    if (encontrados.length === 0) {
       lista.innerHTML = '<li><button type="button" disabled>Sin resultados en la zona</button></li>';
       return;
     }

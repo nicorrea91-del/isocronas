@@ -112,7 +112,7 @@ se subdivide solo.
 python pipeline/build_graph.py
 ```
 
-Genera `web/data/graph.bin`, `web/data/grid.bin` y `web/data/graph_meta.json`.
+Genera `docs/data/graph.bin`, `docs/data/grid.bin` y `docs/data/graph_meta.json`.
 
 ### 3. Factores de tráfico
 
@@ -120,13 +120,13 @@ Genera `web/data/graph.bin`, `web/data/grid.bin` y `web/data/graph_meta.json`.
 python pipeline/calibrate.py --priors
 ```
 
-Escribe `web/data/traffic.json` con valores a priori. **La app ya funciona acá**,
+Escribe `docs/data/traffic.json` con valores a priori. **La app ya funciona acá**,
 con tráfico aproximado. Para calibrarla de verdad, ver la sección siguiente.
 
 ### 4. Levantar el sitio
 
 ```bash
-python -m http.server 8000 --directory web
+python -m http.server 8000 --directory docs
 ```
 
 Y abrir <http://localhost:8000>. Tiene que ser por servidor: abrir el
@@ -161,7 +161,7 @@ python pipeline/calibrate.py
 ```
 
 Imprime los factores ajustados, el error de cada medición y el RMSE global, y
-reescribe `web/data/traffic.json`. Las mediciones marcadas con `!` tienen error
+reescribe `docs/data/traffic.json`. Las mediciones marcadas con `!` tienen error
 mayor a 5 minutos, y las que el modelo no logra explicar se reponderan a la baja
 estilo Huber y se listan al final: así un par con una coordenada mala no arrastra
 el ajuste completo.
@@ -194,14 +194,15 @@ sección de límites.
 pipeline/
   config.py          Área, comunas, velocidades, franjas, pares de calibración
   fetch_osm.py       Descarga de Overpass con caché y subdivisión de tiles
-  build_graph.py     Contracción, densificación y export binario
+  build_graph.py     Contracción, densificación, intersecciones, export binario
   geometry.py        Distancias, polígonos comunales, índice espacial
   calibrate.py       Ajuste de los factores de tráfico
   graph_io.py        Lectura del grafo desde Python
-  make_plantilla.py  Regenera data/mediciones.csv
+  make_plantilla.py  Crea o actualiza data/mediciones.csv sin perder datos
 data/
-  mediciones.csv     Las 40 mediciones de Google Maps (se llena a mano)
-web/
+  mediciones.csv     Mediciones de Google Maps (se llena a mano)
+docs/                La app. Se llama "docs" porque es la única subcarpeta
+                     desde la que GitHub Pages sabe publicar.
   index.html
   style.css
   js/graph.js        Carga de binarios, grafo invertido, nodo más cercano
@@ -227,29 +228,112 @@ Para cambiarla, editar `GRAPH_BBOX`, `ANALYSIS_COMUNAS` y
 
 ## Publicar en GitHub Pages
 
+El objetivo es una dirección web pública que se le pueda mandar a cualquiera. Es
+gratis y no hay que mantener ningún servidor.
+
+### 1. Crear la cuenta y el repositorio
+
+1. Crear cuenta en <https://github.com> si no hay una.
+2. Ir a <https://github.com/new>.
+3. **Repository name:** `isocronas` (o cualquier nombre sin espacios).
+4. Dejarlo en **Public**. Con Public, Pages es gratis; en Private hay que pagar.
+5. **No** marcar "Add a README file" ni ninguna de las casillas de abajo: el
+   repositorio local ya tiene contenido y hay que subirlo vacío de conflictos.
+6. Botón **Create repository**.
+
+### 2. Subir el proyecto
+
+GitHub muestra la dirección del repo recién creado. Con ella, desde la carpeta
+del proyecto:
+
 ```bash
-git add -A
-git commit -m "Proyecto de isócronas y centro de gravedad"
-git branch -M main
-git remote add origin git@github.com:USUARIO/REPO.git
+git remote add origin https://github.com/USUARIO/isocronas.git
 git push -u origin main
 ```
 
-En el repo: *Settings → Pages → Source: Deploy from a branch → main → /web*.
-Queda publicado en `https://USUARIO.github.io/REPO/`.
+Cambiando `USUARIO` por el nombre de usuario de GitHub. La primera vez va a pedir
+autenticación: se abre una ventana del navegador y basta autorizar.
 
-Los archivos de `web/data/` **sí** se versionan (unos pocos MB), para que el
-sitio publicado funcione sin correr el pipeline.
+Si Git pide usuario y contraseña en la terminal en vez de abrir el navegador, la
+contraseña de la cuenta **no** funciona. Hay que generar un token en
+<https://github.com/settings/tokens> (botón *Generate new token (classic)*, marcar
+el permiso `repo`) y usar ese token como contraseña.
+
+### 3. Encender Pages
+
+1. En el repo, pestaña **Settings**.
+2. Menú lateral izquierdo, **Pages**.
+3. En *Build and deployment* → *Source*, elegir **Deploy from a branch**.
+4. En *Branch*, elegir `main` y en la carpeta elegir **`/docs`**. Botón **Save**.
+5. Esperar uno o dos minutos y recargar. Arriba aparece la dirección:
+   `https://USUARIO.github.io/isocronas/`
+
+Esa es la dirección para compartir. Cada vez que se quiera actualizar:
+
+```bash
+git add -A
+git commit -m "lo que cambió"
+git push
+```
+
+y en un par de minutos el sitio publicado se actualiza solo.
+
+### Por qué `docs` y no `web`
+
+GitHub Pages solo publica desde la raíz del repositorio o desde una subcarpeta
+llamada exactamente `docs`. No acepta otros nombres. Por eso la app vive en
+`docs/` aunque no sea documentación.
+
+### Qué queda público
+
+Todo el repositorio: el código, el README y los datos de `docs/data/`. Vale la
+pena tener presente dos cosas:
+
+- Los commits de Git llevan el nombre y el correo configurados en
+  `git config user.email`.
+- `data/mediciones.csv` queda público. No tiene nada sensible, son tiempos de
+  viaje entre puntos conocidos.
+- Los lugares que se agreguen **en la app** no se publican: viven en el enlace
+  que genera el botón *Copiar enlace para compartir*. Ese enlace sí lleva las
+  direcciones adentro, así que conviene pensarlo antes de mandarle a alguien un
+  enlace con la casa de los suegros marcada.
+
+Los archivos de `docs/data/` se versionan a propósito (unos pocos MB), para que
+el sitio publicado funcione sin que nadie tenga que correr el pipeline.
 
 ## Cómo usarlo
 
-- **Clic en el mapa** agrega un punto. **Shift + clic** evalúa un lugar concreto
-  y lo compara contra el óptimo.
+La app arranca vacía a propósito: los lugares son de quien la usa. Pueden ser la
+casa de los suegros y el colegio, o seis clientes que hay que visitar, o las
+sucursales de un negocio — es el mismo problema.
+
+Tres formas de agregar lugares:
+
+- **Buscar una dirección** en el buscador (usa Nominatim, gratis).
+- **Clic en el mapa**.
+- **Agregar varios de una vez**: pegar una lista, una por línea, con el formato
+  `Nombre; dirección; viajes`. Por ejemplo:
+
+  ```
+  Cliente A; Apoquindo 3000, Las Condes; 3
+  Cliente B; Avenida Vitacura 2900, Vitacura; 1
+  Colegio; Avenida La Dehesa 1500, Lo Barnechea; 10
+  ```
+
+  El nombre y los viajes son opcionales; una línea puede ser solo la dirección.
+  Se procesan de a una con una pausa de un segundo, porque el servicio de
+  búsqueda es gratuito y pide no abusar.
+
+Y para evaluar:
+
+- **Shift + clic** en el mapa evalúa un lugar concreto y lo compara contra el
+  óptimo.
 - El slider de cada punto son **viajes sueltos por semana**: ida y vuelta cuentan
   2, así que 14 es un viaje redondo todos los días.
 - Las franjas de **ida** y **vuelta** se eligen por separado: al trabajo se va en
   punta de la mañana y se vuelve en punta de la tarde; a los suegros se va en
-  valle y se vuelve de noche.
+  valle y se vuelve de noche. Sábado y domingo están disponibles y se tratan como
+  ciudad vacía, igual que la madrugada.
 - Los tres sliders de isócrona van de 0 a 100; en 0 se apagan.
 - *Copiar enlace para compartir* guarda todo el escenario en la URL.
 

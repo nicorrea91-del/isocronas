@@ -55,10 +55,12 @@ from datetime import datetime
 import numpy as np
 
 from config import (
+    ALIAS_DE,
     BUCKET_IDS,
     CALIBRATION_PAIRS,
     CLASS_GROUPS,
     DATA_DIR,
+    FIT_BUCKET_IDS,
     TIME_BUCKETS,
     WEB_DATA_DIR,
 )
@@ -364,12 +366,16 @@ def escribir_traffic_json(por_franja: dict, fuente: str, diagnostico: dict) -> N
     WEB_DATA_DIR.mkdir(parents=True, exist_ok=True)
     franjas = []
     for bucket in TIME_BUCKETS:
-        ajuste = por_franja[bucket["id"]]
+        # Una franja con alias copia los parámetros de la otra: el fin de semana
+        # se trata como ciudad vacía en vez de ajustarse por separado.
+        origen = ALIAS_DE.get(bucket["id"], bucket["id"])
+        ajuste = por_franja[origen]
         franjas.append(
             {
                 "id": bucket["id"],
                 "label": bucket["label"],
                 "hora_referencia": f'{bucket["dia"]} {bucket["hora"]}',
+                "copia_de": origen if origen != bucket["id"] else None,
                 "t0_s": ajuste["t0_s"],
                 "g": ajuste["g"],
                 "d_cruce_s": ajuste["d_cruce_s"],
@@ -431,7 +437,12 @@ def main() -> int:
         return solo_priors()
 
     print(f"{total} mediciones cargadas: ", end="")
-    print(", ".join(f"{f}={len(mediciones.get(f, []))}" for f in BUCKET_IDS))
+    print(", ".join(f"{f}={len(mediciones.get(f, []))}" for f in FIT_BUCKET_IDS))
+    if ALIAS_DE:
+        print(
+            "Franjas copiadas: "
+            + ", ".join(f"{destino} <- {origen}" for destino, origen in ALIAS_DE.items())
+        )
 
     grafo = cargar_grafo()
     print(
@@ -448,13 +459,16 @@ def main() -> int:
         )
 
     # Estado de ruteo por franja, y el mejor ajuste visto.
-    ruteo = {f: (np.array(PRIORS[f][1 : 1 + N_GRUPOS]), float(PRIORS[f][1 + N_GRUPOS])) for f in BUCKET_IDS}
+    ruteo = {
+        f: (np.array(PRIORS[f][1 : 1 + N_GRUPOS]), float(PRIORS[f][1 + N_GRUPOS]))
+        for f in FIT_BUCKET_IDS
+    }
     mejor_ajuste: dict[str, dict] = {}
     mejor_detalle: dict[str, list] = {}
 
     for iteracion in range(1, ITERACIONES_RUTA + 1):
         print(f"\n--- Iteración {iteracion}/{ITERACIONES_RUTA} ---")
-        for franja in BUCKET_IDS:
+        for franja in FIT_BUCKET_IDS:
             observaciones = mediciones.get(franja, [])
             if not observaciones:
                 if franja not in mejor_ajuste:
@@ -517,7 +531,7 @@ def main() -> int:
     diagnostico_pares = []
     sospechosos: dict[str, int] = {}
 
-    for franja in BUCKET_IDS:
+    for franja in FIT_BUCKET_IDS:
         if franja not in mejor_detalle:
             continue
         ajuste = mejor_ajuste[franja]

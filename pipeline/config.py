@@ -15,7 +15,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CACHE_DIR = ROOT / "cache"
 DATA_DIR = ROOT / "data"
-WEB_DATA_DIR = ROOT / "web" / "data"
+# La app vive en docs/ y no en web/ porque GitHub Pages solo sabe publicar desde
+# la raíz del repo o desde una carpeta llamada exactamente "docs".
+WEB_DATA_DIR = ROOT / "docs" / "data"
 
 
 # ---------------------------------------------------------------------------
@@ -151,9 +153,36 @@ TIME_BUCKETS = [
         "hora": "21:30",
         "es_referencia": False,
     },
+    # Franjas de fin de semana. `alias_de` significa que copian los parámetros de
+    # otra franja en vez de ajustarse con mediciones propias: acá se tratan como
+    # ciudad vacía, igual que la madrugada.
+    #
+    # Es un supuesto deliberado y tiene un límite conocido: un sábado al mediodía
+    # en Alonso de Córdova o alrededor de Parque Arauco no está vacío ni cerca. Si
+    # algún día quieres un sábado de verdad, basta borrarle el `alias_de` y cargar
+    # 8 mediciones de sábado en data/mediciones.csv.
+    {
+        "id": "sabado",
+        "label": "Sábado (como ciudad vacía)",
+        "dia": "sábado",
+        "hora": "12:00",
+        "es_referencia": False,
+        "alias_de": "madrugada",
+    },
+    {
+        "id": "domingo",
+        "label": "Domingo (como ciudad vacía)",
+        "dia": "domingo",
+        "hora": "12:00",
+        "es_referencia": False,
+        "alias_de": "madrugada",
+    },
 ]
 
 BUCKET_IDS = [b["id"] for b in TIME_BUCKETS]
+# Solo estas se ajustan contra mediciones; las demás copian a su alias.
+FIT_BUCKET_IDS = [b["id"] for b in TIME_BUCKETS if not b.get("alias_de")]
+ALIAS_DE = {b["id"]: b["alias_de"] for b in TIME_BUCKETS if b.get("alias_de")}
 REFERENCE_BUCKET = next(b["id"] for b in TIME_BUCKETS if b["es_referencia"])
 
 
@@ -235,6 +264,73 @@ CALIBRATION_PAIRS = [
         "por_que": "Bajada de Lo Barnechea, cuello de botella conocido",
     },
 ]
+
+
+# ---------------------------------------------------------------------------
+# Pares de corredor
+# ---------------------------------------------------------------------------
+
+# El error que queda en el modelo tiene una forma clarísima: los viajes con mucha
+# autopista quedan subestimados hasta en 11 minutos, porque un solo factor de
+# autopista por franja no puede expresar que Costanera Norte hacia el oriente a
+# las 18:30 está tapada mientras la misma autopista al poniente fluye. La
+# congestión de autopista es direccional y por corredor.
+#
+# Estos pares existen para medir cada corredor en cada sentido, lo más aislado
+# posible. Los extremos NO son inventados: se geocodificaron con Nominatim y se
+# verificó a qué distancia cae el nodo más cercano del grafo (el "snap" del
+# comentario). Inventar una coordenada ya costó caro una vez.
+#
+# Solo se piden 4 franjas: la noche y el fin de semana se resuelven copiando la
+# madrugada, así que medirlos acá no aportaría nada.
+FRANJAS_CORREDOR = ["madrugada", "punta_am", "valle", "punta_pm"]
+
+_EXTREMOS = {
+    # clave: (lat, lon, texto para buscar en Google Maps)
+    "mapocho": (-33.4330, -70.6524, "Estación Mapocho, Santiago"),  # snap 25 m
+    "lo_saldes": (-33.4088, -70.6030, "Puente Lo Saldes, Las Condes"),  # snap 21 m
+    "chicureo": (-33.2829, -70.6539, "Rotonda Chicureo, Colina"),  # snap 35 m
+    "plaza_norte": (-33.3659, -70.6787, "Mall Plaza Norte, Huechuraba"),  # snap 213 m
+    "estoril": (-33.3875, -70.5395, "Avenida Estoril, Las Condes"),  # snap 47 m
+    "la_dehesa": (-33.3674, -70.5124, "Avenida La Dehesa, Lo Barnechea"),  # snap 83 m
+    "parque_arauco": (-33.4023, -70.5773, "Mall Parque Arauco, Las Condes"),  # snap 158 m
+}
+
+# (id, corredor que aísla, extremo A, extremo B)
+_PARES_CORREDOR = [
+    ("costanera", "Costanera Norte", "lo_saldes", "mapocho"),
+    ("libertadores", "Autopista Los Libertadores", "chicureo", "plaza_norte"),
+    ("vespucio_norte", "Vespucio Norte (túneles)", "plaza_norte", "lo_saldes"),
+    ("kennedy", "Kennedy expresa", "estoril", "lo_saldes"),
+    ("las_condes", "Av. La Dehesa / Av. Las Condes", "la_dehesa", "parque_arauco"),
+]
+
+
+def _pares_de_corredor():
+    """Cada corredor genera dos pares, uno por sentido."""
+    generados = []
+    for base, corredor, clave_a, clave_b in _PARES_CORREDOR:
+        lat_a, lon_a, texto_a = _EXTREMOS[clave_a]
+        lat_b, lon_b, texto_b = _EXTREMOS[clave_b]
+        for sufijo, (origen, destino) in (
+            ("ida", ((lat_a, lon_a, texto_a), (lat_b, lon_b, texto_b))),
+            ("vuelta", ((lat_b, lon_b, texto_b), (lat_a, lon_a, texto_a))),
+        ):
+            generados.append(
+                {
+                    "id": f"{base}_{sufijo}",
+                    "origen": origen[2],
+                    "origen_latlon": (origen[0], origen[1]),
+                    "destino": destino[2],
+                    "destino_latlon": (destino[0], destino[1]),
+                    "por_que": f"Aísla {corredor}, sentido {sufijo}",
+                    "franjas": FRANJAS_CORREDOR,
+                }
+            )
+    return generados
+
+
+CALIBRATION_PAIRS = CALIBRATION_PAIRS + _pares_de_corredor()
 
 
 # ---------------------------------------------------------------------------

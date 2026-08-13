@@ -4,7 +4,7 @@
     {
       "name": "isocronas",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8000", "--directory", "web"],
+      "runtimeArgs": ["-m", "http.server", "8000", "--directory", "docs"],
       "port": 8000
     }
   ]

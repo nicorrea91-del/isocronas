@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generado": "2026-08-12T21:47:11",
+  "generado": "2026-08-13T09:38:19",
   "fuente": "40 mediciones de Google Maps",
   "grupos": [
     "autopista",
@@ -27,6 +27,7 @@
       "id": "madrugada",
       "label": "Madrugada (referencia sin tráfico)",
       "hora_referencia": "martes 03:00",
+      "copia_de": null,
       "t0_s": 240.0,
       "g": [
         0.8703,
@@ -39,6 +40,7 @@
       "id": "punta_am",
       "label": "Punta mañana",
       "hora_referencia": "martes 08:00",
+      "copia_de": null,
       "t0_s": 92.5,
       "g": [
         0.7,
@@ -51,6 +53,7 @@
       "id": "valle",
       "label": "Valle / horario normal",
       "hora_referencia": "martes 13:00",
+      "copia_de": null,
       "t0_s": 240.0,
       "g": [
         0.8198,
@@ -63,6 +66,7 @@
       "id": "punta_pm",
       "label": "Punta tarde",
       "hora_referencia": "martes 18:30",
+      "copia_de": null,
       "t0_s": 240.0,
       "g": [
         0.7971,
@@ -75,6 +79,7 @@
       "id": "noche",
       "label": "Noche",
       "hora_referencia": "martes 21:30",
+      "copia_de": null,
       "t0_s": 240.0,
       "g": [
         0.7011,
@@ -82,6 +87,32 @@
         0.7
       ],
       "d_cruce_s": 8.49
+    },
+    {
+      "id": "sabado",
+      "label": "Sábado (como ciudad vacía)",
+      "hora_referencia": "sábado 12:00",
+      "copia_de": "madrugada",
+      "t0_s": 240.0,
+      "g": [
+        0.8703,
+        0.7,
+        0.7
+      ],
+      "d_cruce_s": 8.32
+    },
+    {
+      "id": "domingo",
+      "label": "Domingo (como ciudad vacía)",
+      "hora_referencia": "domingo 12:00",
+      "copia_de": "madrugada",
+      "t0_s": 240.0,
+      "g": [
+        0.8703,
+        0.7,
+        0.7
+      ],
+      "d_cruce_s": 8.32
     }
   ],
   "diagnostico": {
