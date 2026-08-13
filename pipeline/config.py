@@ -209,7 +209,11 @@ CALIBRATION_PAIRS = [
     {
         "id": "chamisero_colina",
         "origen": "Chamisero, Colina",
-        "origen_latlon": (-33.2880, -70.5980),
+        # Coordenada del pueblo según Nominatim. La primera estimación estaba 6 km
+        # al noreste, caía a 446 m del camino más cercano y hacía que el modelo
+        # ruteara con un desvío de 1,98x, sobreestimando el par en 6-18 min en
+        # todas las franjas y arrastrando hacia abajo el ajuste completo.
+        "origen_latlon": (-33.3218, -70.6476),
         "destino": "Plaza de Colina",
         "destino_latlon": (-33.2030, -70.6740),
         "por_que": "Caminos semiurbanos y rurales, poco congestionados",

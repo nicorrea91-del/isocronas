@@ -301,10 +301,18 @@ function sincronizarMetrica() {
   const explicaciones = {
     tiempo: 'Minutos reales de viaje, con los factores de tráfico calibrados por horario.',
     flujo_libre:
-      'Minutos con calles despejadas. Comparado con el anterior, muestra cuánto te cuesta el tráfico.',
+      'Todo evaluado a las 3 AM, con la ciudad despejada. Ignora las franjas de cada punto; ' +
+      'restado del anterior, dice cuánto de tu tiempo semanal es puro tráfico.',
     distancia: 'Kilómetros recorridos, sin importar el tiempo. Útil si te preocupa el combustible.',
   };
   el('ayuda-metrica').textContent = explicaciones[metrica.id];
+  // Cuando la métrica fija la franja, los selectores de cada punto no aplican.
+  const fijada = Boolean(metrica.franjaFija);
+  for (const select of document.querySelectorAll(
+    '[data-rol="franja-ida"], [data-rol="franja-vuelta"], #iso-franja'
+  )) {
+    select.disabled = fijada;
+  }
   for (const fila of el('iso-sliders').querySelectorAll('.iso-slider')) {
     fila.querySelector('output').textContent = etiquetaUmbral(
       Number(fila.querySelector('input').value)
@@ -455,6 +463,17 @@ function actualizarSelectorOrigen() {
 // Cálculo
 // ---------------------------------------------------------------------------
 
+/**
+ * Franja horaria que corresponde usar. Algunas métricas ignoran la franja de
+ * cada punto y fijan una sola para todos: "Tiempo de madrugada" existe para
+ * comparar contra la ciudad despejada, así que no tiene sentido que un punto la
+ * evalúe en punta.
+ */
+function franjaDe(punto, direccion, metrica) {
+  if (metrica.franjaFija) return datos.franjas[metrica.franjaFija];
+  return datos.franjas[direccion === 'ida' ? punto.franjaIda : punto.franjaVuelta];
+}
+
 let temporizadorRecalculo = null;
 function programarRecalculo() {
   clearTimeout(temporizadorRecalculo);
@@ -490,8 +509,8 @@ function recalcular() {
     router.camposDePunto(
       punto.nodo,
       metrica,
-      datos.franjas[punto.franjaIda],
-      datos.franjas[punto.franjaVuelta]
+      franjaDe(punto, 'ida', metrica),
+      franjaDe(punto, 'vuelta', metrica)
     )
   );
   const pesos = activos.map((punto) => punto.viajes);
@@ -697,10 +716,12 @@ function pintar() {
   const activas = estado.isoUmbrales.filter((valor) => valor > 0);
   let imagenIso = null;
 
+  const franjaIso = datos.franjas[metrica.franjaFija ?? estado.isoFranja];
+
   if (origen >= 0 && activas.length > 0) {
-    const clave = `${origen}|${metrica.id}|${estado.isoFranja}`;
+    const clave = `${origen}|${metrica.id}|${franjaIso.id}`;
     if (cacheRaster.clave !== clave) {
-      const campo = router.campoDesde(origen, metrica, datos.franjas[estado.isoFranja]);
+      const campo = router.campoDesde(origen, metrica, franjaIso);
       cacheRaster = {
         clave,
         rasterizado: rasterizarCampo(datos.grafo, campo, datos.grafo.bbox, CELDA_ISO_M, 2),
@@ -708,8 +729,8 @@ function pintar() {
     }
     imagenIso = pintarIsocronas(cacheRaster.rasterizado, estado.isoUmbrales, metrica.divisor);
     el('iso-estado').textContent =
-      `${activas.length} banda${activas.length > 1 ? 's' : ''} · ` +
-      `${datos.franjas[estado.isoFranja].label.toLowerCase()}`;
+      `${activas.length} banda${activas.length > 1 ? 's' : ''} · ${franjaIso.label.toLowerCase()}` +
+      (metrica.franjaFija ? ' (fijada por la métrica)' : '');
   } else if (origen < 0) {
     el('iso-estado').textContent = 'Elige un origen válido para ver las isócronas.';
   } else {

@@ -43,21 +43,38 @@ respuesta es instantánea. **Cero llamadas a API en tiempo de uso.**
 
 ### El tráfico
 
-La velocidad de cada tramo se modela como
+El tiempo de una ruta se modela como
 
 ```
-tiempo = tiempo_flujo_libre × g(tipo_de_vía, franja_horaria)  +  t0(franja)
+T = t0(franja)  +  Σ_c ff_c · g(c, franja)  +  N_cruces · d(franja)
 ```
 
-donde `g` son factores de demora y `t0` el costo fijo del viaje (partir,
-estacionar, los primeros y últimos 100 metros). Esos números se ajustan con unas
-40 mediciones reales de Google Maps que se ingresan a mano una sola vez.
+- `ff_c` son los minutos de flujo libre que la ruta pasa en vías del grupo `c`
+  (autopista / arterial / local), que salen del grafo.
+- `g` son factores de demora por grupo y franja.
+- `t0` es el costo fijo del viaje: partir, estacionar, los primeros y últimos
+  100 metros.
+- `N_cruces` es la cantidad de intersecciones que atraviesa la ruta, y `d` la
+  demora media por intersección.
+
+**El término de intersecciones es lo que hace que el modelo funcione.** Un
+modelo puramente multiplicativo no puede describir a la vez un viaje de 4 km por
+Pedro de Valdivia y uno de 22 km por Costanera Norte: el primero exigía un
+factor arterial de 6 y el segundo de 3. La causa física de la diferencia no es
+el tipo de vía sino la densidad de semáforos, y contarlos la captura sin romper
+la linealidad del ajuste. Los cruces alcanzados por autopista no cuentan: son
+enlaces a distinto nivel, no semáforos.
+
+Todos los parámetros están **acotados a rangos físicos** (`COTAS` en
+`calibrate.py`). No es un detalle decorativo: sin cota superior en `t0`, el
+ajuste cambia toda la estructura multiplicativa por una constante enorme —llegó
+a 20 minutos de costo fijo por viaje— y clava los factores en su piso. Eso da un
+RMSE bajísimo en las mediciones y un modelo inservible, porque un candidato a
+500 m del destino quedaría predicho en 20 minutos.
 
 Mientras no haya mediciones, el proyecto usa valores a priori estimados con la
-forma de un día típico de Santiago — dos puntas, la de la tarde peor que la de
-la mañana. **Son un supuesto, no un dato**, y están por lo bajo: sin calibrar,
-el modelo da Chicureo–El Golf en 33 minutos en punta de la mañana, cuando en la
-práctica son bastante más. El
+forma de un día típico de Santiago. **Son un supuesto, no un dato**, y están por
+lo bajo. El
 [índice de tráfico de TomTom](https://www.tomtom.com/traffic-index/city/santiago/)
 sirve para contrastar la forma de la curva, pero la magnitud la fijan las
 mediciones.
@@ -144,12 +161,30 @@ python pipeline/calibrate.py
 ```
 
 Imprime los factores ajustados, el error de cada medición y el RMSE global, y
-reescribe `web/data/traffic.json`. Un RMSE bajo los 3 minutos es bueno. Si una
-medición aparece marcada con `!` (error mayor a 5 min), suele ser que la ruta que
-tomó Google es distinta a la del modelo — vale la pena mirarla.
+reescribe `web/data/traffic.json`. Las mediciones marcadas con `!` tienen error
+mayor a 5 minutos, y las que el modelo no logra explicar se reponderan a la baja
+estilo Huber y se listan al final: así un par con una coordenada mala no arrastra
+el ajuste completo.
 
 Las filas que dejes vacías simplemente no se usan; el proyecto funciona con las
 que haya, y las franjas sin mediciones se quedan con su valor a priori.
+
+**Estado actual del ajuste** con las 40 mediciones cargadas:
+
+| franja | costo fijo | autopista | arterial | local | demora/cruce | RMSE |
+|---|---|---|---|---|---|---|
+| madrugada | 4,0 min | 0,87 | 0,70 | 0,70 | 8,3 s | 1,78 min |
+| punta AM | 1,5 min | 0,70 | 2,76 | 0,70 | 31,7 s | 4,89 min |
+| valle | 4,0 min | 0,82 | 0,92 | 0,70 | 21,3 s | 4,76 min |
+| punta PM | 4,0 min | 0,80 | 0,70 | 1,45 | 27,1 s | 6,03 min |
+| noche | 4,0 min | 0,70 | 1,80 | 0,70 | 8,5 s | 3,74 min |
+
+RMSE global 4,47 min, error absoluto medio 3,18 min, 8 de 40 mediciones con
+error mayor a 5 minutos. La demora por semáforo yendo de 8 s en la madrugada a
+32 s en la punta de la mañana es un resultado sano y creíble.
+
+Los dos pares que el modelo todavía no explica bien están documentados en la
+sección de límites.
 
 ---
 
@@ -223,9 +258,23 @@ sitio publicado funcione sin correr el pipeline.
 - **El tráfico es un promedio por tipo de vía, no un estado real.** El modelo no
   sabe que hoy hay un choque en Kennedy. Sirve para comparar lugares, no para
   planificar un viaje.
-- **Los factores son de toda la ciudad.** Un mismo factor de "arterial" aplica a
-  Irarrázaval y a Camino Chicureo. Con más mediciones se podría separar por
-  corredor; con 40 no alcanza y sobreajustaría.
+- **La congestión de autopista no es direccional, y ahí está el error que queda.**
+  Un solo factor de autopista por franja no puede expresar que Costanera Norte
+  hacia el oriente a las 18:30 está tapada mientras la misma autopista al
+  poniente fluye. Se ve en los residuos:
+  - `ladehesa_losleones` queda **subestimado en 7 a 11 min** en cuatro de las
+    cinco franjas. Es un viaje con 62% de autopista, y el modelo no tiene forma
+    de cargarle la congestión de ese corredor específico sin romper los otros
+    pares que usan la misma autopista.
+  - `elgolf_chicureo` en punta de la tarde queda subestimado en 10 min, por lo
+    mismo pero al revés: es la salida de la ciudad a la hora peak.
+
+  La solución es separar el grupo `autopista` por corredor y sentido (Costanera
+  Norte, Vespucio, Los Libertadores, Kennedy), lo que agrega una incógnita por
+  corredor y franja. Con 8 mediciones por franja no alcanza: hacen falta pares
+  nuevos que aíslen cada corredor.
+- **Los factores de superficie también son de toda la ciudad.** Un mismo factor
+  "arterial" aplica a Irarrázaval y a Camino Chicureo.
 - **Solo auto.** Nada de transporte público, bici ni caminata.
 - **El óptimo es un punto de la grilla de 150 m**, y el mapa de calor suele ser
   bastante plano cerca del mínimo. Tomar la zona verde como respuesta, no la

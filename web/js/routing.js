@@ -100,15 +100,21 @@ export const METRICAS = {
     usaFactores: true,
     usaCostoFijo: true,
   },
+  // "Sin tráfico" es la madrugada CALIBRADA, no los factores en 1. Poner los
+  // factores en 1 daría tiempos que ni a las 3 de la mañana se logran: las
+  // mediciones muestran que Providencia-Ñuñoa, 4 km, toma 13 minutos a esa hora
+  // por los semáforos. Comparar la punta contra la madrugada real sí responde
+  // algo útil: cuánto de tu tiempo semanal es tráfico y cuánto es distancia.
   flujo_libre: {
     id: 'flujo_libre',
-    label: 'Tiempo sin tráfico',
+    label: 'Tiempo de madrugada',
     unidad: 'min',
     divisor: 60,
     arreglo: 'baseDs',
     escala: 0.1,
-    usaFactores: false,
-    usaCostoFijo: false,
+    usaFactores: true,
+    usaCostoFijo: true,
+    franjaFija: 'madrugada',
   },
   distancia: {
     id: 'distancia',
@@ -137,7 +143,7 @@ export class Router {
    * Con csr = grafo.rev y origen = un destino, el resultado se lee al revés:
    * costo desde cualquier nodo hasta ese destino.
    */
-  dijkstra(csr, origen, metrica, factores, salida) {
+  dijkstra(csr, origen, metrica, factores, demoraCruce, salida) {
     const n = this.grafo.n;
     const dist = salida || new Float32Array(n);
     dist.fill(Infinity);
@@ -147,6 +153,13 @@ export class Router {
     const pesos = csr[metrica.arreglo];
     const escala = metrica.escala;
     const efectivos = metrica.usaFactores ? factores : SIN_FACTORES;
+    // Demora por intersección. Solo se aplica al llegar a un cruce por una vía
+    // que no sea autopista: en Costanera Norte los nudos son enlaces a distinto
+    // nivel, no semáforos. Tiene que ser la misma regla que usa calibrate.py o
+    // los factores ajustados no significan lo mismo acá.
+    const juncion = this.grafo.juncion;
+    const grupoSinEspera = this.grafo.grupoSinEspera;
+    const demora = metrica.usaCostoFijo ? demoraCruce : 0;
     const heap = this.heap;
     heap.reiniciar();
     dist[origen] = 0;
@@ -160,7 +173,11 @@ export class Router {
       const fin = offsets[u + 1];
       for (let e = offsets[u]; e < fin; e++) {
         const v = targets[e];
-        const nueva = d + pesos[e] * escala * efectivos[groups[e]];
+        const grupo = groups[e];
+        let nueva = d + pesos[e] * escala * efectivos[grupo];
+        if (demora > 0 && juncion[v] === 1 && grupo !== grupoSinEspera) {
+          nueva += demora;
+        }
         if (nueva < dist[v]) {
           dist[v] = nueva;
           // Se empuja `dist[v]` y no `nueva`: al guardarlo en el Float32Array
@@ -187,8 +204,12 @@ export class Router {
     const enCache = this._cache.get(clave);
     if (enCache) return enCache;
 
-    const ida = this.dijkstra(this.grafo.rev, nodo, metrica, franjaIda.factores);
-    const vuelta = this.dijkstra(this.grafo.fwd, nodo, metrica, franjaVuelta.factores);
+    const ida = this.dijkstra(
+      this.grafo.rev, nodo, metrica, franjaIda.factores, franjaIda.dCruce
+    );
+    const vuelta = this.dijkstra(
+      this.grafo.fwd, nodo, metrica, franjaVuelta.factores, franjaVuelta.dCruce
+    );
     const resultado = {
       ida,
       vuelta,
@@ -213,7 +234,7 @@ export class Router {
     const clave = `fwd|${nodo}|${metrica.id}|${franja.id}`;
     const enCache = this._cacheSimple.get(clave);
     if (enCache) return enCache;
-    const campo = this.dijkstra(this.grafo.fwd, nodo, metrica, franja.factores);
+    const campo = this.dijkstra(this.grafo.fwd, nodo, metrica, franja.factores, franja.dCruce);
     if (this._cacheSimple.size >= 12) {
       this._cacheSimple.delete(this._cacheSimple.keys().next().value);
     }

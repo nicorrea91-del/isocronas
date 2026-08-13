@@ -254,6 +254,24 @@ def construir_csr(aristas, nodos_osm):
             habitable[ia] = True
             habitable[ib] = True
 
+    # Marca de intersección: nodos con 3 o más vecinos distintos en la vista no
+    # dirigida. Los nodos que quedaron de la densificación tienen 2 vecinos, así
+    # que esto aísla los cruces de verdad, que es donde están los semáforos y
+    # los discos pare. La demora por intersección es lo que explica por qué un
+    # viaje de 4 km por Pedro de Valdivia toma más que 4 km de Costanera Norte.
+    pares = np.array(
+        [(indice_de[a], indice_de[b]) for a, b, *_ in aristas], dtype=np.int64
+    )
+    menor = pares.min(axis=1)
+    mayor = pares.max(axis=1)
+    # Se codifica cada arista no dirigida en un solo entero para poder deduplicar
+    # con np.unique: una avenida de doble calzada aporta un vecino, no dos.
+    aristas_unicas = np.unique(menor * n + mayor)
+    grados = np.zeros(n, dtype=np.int32)
+    np.add.at(grados, aristas_unicas // n, 1)
+    np.add.at(grados, aristas_unicas % n, 1)
+    es_juncion = (grados >= 3).astype(np.uint8)
+
     dirigidas.sort(key=lambda e: e[0])
     m = len(dirigidas)
 
@@ -279,6 +297,7 @@ def construir_csr(aristas, nodos_osm):
         "base_ds": base_ds,
         "largo_m": largo_m,
         "grupos": grupos,
+        "juncion": es_juncion,
         "habitable": habitable,
         "indice_de": indice_de,
     }
@@ -407,6 +426,7 @@ def exportar(grafo, grilla, nombres_comunas) -> None:
     agregar("base_ds", grafo["base_ds"])
     agregar("largo_m", grafo["largo_m"])
     agregar("grupos", grafo["grupos"])
+    agregar("juncion", grafo["juncion"])
 
     ruta_grafo = WEB_DATA_DIR / "graph.bin"
     ruta_grafo.write_bytes(bytes(buffer))
@@ -525,7 +545,8 @@ def main() -> int:
     grafo = construir_csr(aristas, datos["nodes"])
     print(
         f"  {len(grafo['lats']):,} nodos, {len(grafo['targets']):,} aristas dirigidas, "
-        f"{int(grafo['habitable'].sum()):,} nodos habitables."
+        f"{int(grafo['habitable'].sum()):,} habitables, "
+        f"{int(grafo['juncion'].sum()):,} intersecciones."
     )
 
     print("\nConstruyendo grilla de candidatos...")

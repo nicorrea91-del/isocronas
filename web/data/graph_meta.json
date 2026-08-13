@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generado": "2026-08-12T11:50:13",
+  "generado": "2026-08-12T21:39:36",
   "grafo": {
     "archivo": "graph.bin",
     "nodos": 89785,
@@ -45,6 +45,11 @@
       "grupos": {
         "offset": 2712652,
         "bytes": 204403,
+        "dtype": "uint8"
+      },
+      "juncion": {
+        "offset": 2917056,
+        "bytes": 89785,
         "dtype": "uint8"
       }
     }

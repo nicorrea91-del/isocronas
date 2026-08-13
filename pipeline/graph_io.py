@@ -33,6 +33,7 @@ class Grafo:
         self.base_ds = leer("base_ds")
         self.largo_m = leer("largo_m")
         self.grupos = leer("grupos")
+        self.juncion = leer("juncion")
         self.grupos_via = meta["grupos_via"]
         self.meta = meta
 

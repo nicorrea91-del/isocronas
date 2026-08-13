@@ -76,6 +76,10 @@ export class Grafo {
       largoM: vista(buffer, secciones, 'largo_m'),
       groups: vista(buffer, secciones, 'grupos'),
     };
+    // Marca por NODO (no por arista): 1 si es un cruce de verdad. La demora por
+    // intersección es lo que explica por qué 4 km por Pedro de Valdivia toman
+    // más que 4 km de Costanera Norte.
+    this.juncion = vista(buffer, secciones, 'juncion');
     this.rev = invertir(this.fwd, this.n);
     this.m = this.fwd.targets.length;
     this.bbox = meta.grafo.bbox;
@@ -158,6 +162,7 @@ export function alinearFactores(trafico, gruposVia) {
       label: franja.label,
       horaReferencia: franja.hora_referencia,
       t0: franja.t0_s,
+      dCruce: franja.d_cruce_s ?? 0,
       factores,
     };
   }
@@ -188,6 +193,12 @@ export async function cargarDatos(base = 'data/') {
   const grafo = new Grafo(meta, bufferGrafo);
   const grilla = new Grilla(meta, bufferGrilla);
   const franjas = alinearFactores(trafico, grafo.gruposVia);
+
+  // Grupo de vía cuyos cruces son enlaces a distinto nivel y no llevan demora.
+  // Lo define la calibración, así que se lee de traffic.json: si acá se aplicara
+  // una regla distinta a la de calibrate.py, los factores ajustados dejarían de
+  // significar lo mismo.
+  grafo.grupoSinEspera = grafo.gruposVia.indexOf(trafico.grupo_sin_espera ?? 'autopista');
 
   return { meta, grafo, grilla, trafico, franjas };
 }
