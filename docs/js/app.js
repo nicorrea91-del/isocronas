@@ -28,8 +28,24 @@ const PALETA = [
   '#65a30d',
 ];
 
-const PNG_TRANSPARENTE =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+/**
+ * PNG transparente para inicializar las capas de imagen antes de tener algo que
+ * mostrar.
+ *
+ * Se genera con canvas y no como una constante base64 escrita a mano: un base64
+ * mal copiado produce un PNG que `Image.decode()` acepta pero
+ * `createImageBitmap()` rechaza, que es justamente lo que usa MapLibre por
+ * dentro. Cuando eso pasa, la fuente de imagen queda en estado de error y
+ * ningún `updateImage()` posterior vuelve a pintar: el mapa de calor y las
+ * isócronas simplemente no aparecen nunca, sin más pista que un
+ * "InvalidStateError" suelto en la consola.
+ */
+function pngTransparente(lado = 4) {
+  const canvas = document.createElement('canvas');
+  canvas.width = lado;
+  canvas.height = lado;
+  return canvas.toDataURL('image/png');
+}
 
 // Resolución del raster de isócronas. 120 m es más fino que la separación
 // típica entre esquinas, así que el borde queda pegado a las calles.
@@ -162,7 +178,7 @@ function construirMapa() {
     ]) {
       mapa.addSource(id, {
         type: 'image',
-        url: PNG_TRANSPARENTE,
+        url: pngTransparente(),
         coordinates: esquinasBbox,
       });
       mapa.addLayer({
