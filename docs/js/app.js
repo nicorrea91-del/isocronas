@@ -78,6 +78,9 @@ let siguienteId = 1;
 let ultimoResultado = null;
 let marcadorOptimo = null;
 let marcadorCandidato = null;
+// Las capas de imagen se crean en el evento `load` del mapa; hasta entonces no
+// se puede pintar.
+let capasListas = false;
 // Raster de isócrona memoizado: solo se recalcula si cambia el origen, la
 // franja o la métrica, no al mover los sliders de minutos.
 let cacheRaster = { clave: null, rasterizado: null };
@@ -192,6 +195,15 @@ function construirMapa() {
         },
       });
     }
+    capasListas = true;
+    pintar();
+  });
+
+  // Red de seguridad: si por cualquier motivo el pintado de `load` ocurrió antes
+  // de que hubiera un resultado que mostrar, la primera vez que el mapa queda
+  // quieto se vuelve a intentar.
+  mapa.once('idle', () => {
+    capasListas = true;
     pintar();
   });
 
@@ -713,17 +725,27 @@ function nodoOrigenIsocrona() {
 }
 
 function actualizarCapa(id, imagen) {
-  if (!mapa.getSource(id)) return;
+  const fuente = mapa.getSource(id);
+  if (!fuente) return;
   if (!imagen) {
     mapa.setLayoutProperty(id, 'visibility', 'none');
     return;
   }
-  mapa.getSource(id).updateImage({ url: imagen.url, coordinates: imagen.coordenadas });
+  fuente.updateImage({ url: imagen.url, coordinates: imagen.coordenadas });
   mapa.setLayoutProperty(id, 'visibility', 'visible');
 }
 
 function pintar() {
-  if (!mapa || !mapa.isStyleLoaded() || !mapa.getSource('capa-iso')) return;
+  // Se comprueba solo que las capas existan, NO `mapa.isStyleLoaded()`. Ese
+  // método devuelve false mientras el estilo y los tiles siguen cargando, aún
+  // después del evento `load`, así que usarlo como guarda hacía que la pasada
+  // buena de pintado se descartara silenciosamente y no se reintentara jamás.
+  // En local no se notaba, porque los tiles venían de caché y siempre daba true;
+  // publicado, por red, el mapa de calor y las isócronas no aparecían nunca.
+  //
+  // Las fuentes las crea este mismo código en el handler de `load`, y ese
+  // handler vuelve a llamar a pintar(), así que basta con salir y esperar.
+  if (!mapa || !capasListas) return;
   const metrica = METRICAS[estado.metrica];
 
   // Mapa de calor del costo semanal
